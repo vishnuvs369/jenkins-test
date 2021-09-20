@@ -1,0 +1,75 @@
+pipeline {
+    agent any
+    tools {
+        "org.jenkinsci.plugins.terraform.TerraformInstallation" "terraform"
+    }
+    parameters {
+        string(name: 'WORKSPACE', defaultValue: 'development', description:'workspace to use in Terraform')
+    }
+
+    environment {
+        TF_HOME = tool('terraform')
+        TF_INPUT = "0"
+        TF_IN_AUTOMATION = "TRUE"
+        TF_LOG = "WARN"
+        AWS_ACCESS_KEY_ID = credentials('aws_access_key')
+        AWS_SECRET_ACCESS_KEY = credentials('aws_secret_access_key')
+        PATH = "$TF_HOME:$PATH"
+    }
+
+    stages {
+        stage('ENVInit'){
+            steps {
+                dir('env/'){
+                    sh 'terraform --version'
+                    sh "terraform init"
+                }
+            }
+        }
+        stage('ENVValidate'){
+            steps {
+                dir('env/'){
+                    sh 'terraform validate'
+                }
+            }
+        }
+        stage('ENVPlan'){
+            steps {
+                dir('env/'){
+                    script {
+                        try {
+                           sh "terraform workspace new ${params.WORKSPACE}"
+                        } catch (err) {
+                            sh "terraform workspace select ${params.WORKSPACE}"
+                        }
+                        sh "terraform plan -out terraform-env.tfplan;echo \$? > status"
+                        stash name: "terraform-env-plan", includes: "terraform-env.tfplan"
+                    }
+                }
+            }
+        }
+        stage('ENVApply'){
+            steps {
+                script{
+                    def apply = false
+                    try {
+                        input message: 'confirm apply', ok: 'Apply Config'
+                        apply = true
+                    } catch (err) {
+                        apply = false
+                        dir('env/'){
+                            sh "terraform destroy -auto-approve"
+                        }
+                        currentBuild.result = 'UNSTABLE'
+                    }
+                    if(apply){
+                        dir('env/'){
+                            unstash "terraform-env-plan"
+                            sh 'terraform apply terraform-env.tfplan'
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
