@@ -12,8 +12,8 @@ pipeline {
         TF_INPUT = "0"
         TF_IN_AUTOMATION = "TRUE"
         TF_LOG = "WARN"
-        AWS_ACCESS_KEY_ID = credentials('AKIA5SDVBNXBQP3Y627I')
-        AWS_SECRET_ACCESS_KEY = credentials('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')
+        AWS_ACCESS_KEY_ID = credentials('aws_access_key')
+        AWS_SECRET_ACCESS_KEY = credentials('aws_secret_access_key')
         PATH = "$TF_HOME:$PATH"
     }
 
