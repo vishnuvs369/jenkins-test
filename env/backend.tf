@@ -1,6 +1,6 @@
 terraform {
   backend "s3" {
-    bucket         =  "vstest369"
+    bucket         =  "vs-test-jenkins"
     key            = "tf/terraform.tfstate"
     region         = "us-east-1"
   }
